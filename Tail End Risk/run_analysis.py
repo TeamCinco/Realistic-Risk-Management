@@ -15,9 +15,8 @@ from monte_carlo_risk_engine import MonteCarloRiskEngine
 # USER INPUTS - MODIFY THESE PARAMETERS
 # ============================================================================
 
-# Stock and Benchmark
+# Stock
 STOCK_SYMBOL = "CAT"           # Change to any stock (e.g., "AAPL", "NVDA", "MSFT")
-BENCHMARK_SYMBOL = "SPY"        # Change to any benchmark (e.g., "QQQ", "DIA", "IWM")
 
 # Capital and Risk Parameters
 STARTING_CAPITAL = 1000         # Your starting capital in dollars
@@ -39,8 +38,7 @@ HISTORICAL_WINDOW = 252*6       # Days to look back for volatility calculation
 #     Set CUSTOM_STOCK_PRICE = 400.0, then check output
 #   - Want to test "what if" scenarios from different price levels
 #
-CUSTOM_STOCK_PRICE = None       # Example: 400.0 (CAT price before drop)
-CUSTOM_BENCHMARK_PRICE = None   # Example: 580.0 (SPY price before drop)
+CUSTOM_STOCK_PRICE = 669.34       # Example: 400.0 (CAT price before drop)
 
 # ============================================================================
 # TARGET PRICE ANALYSIS (OPTIONAL)
@@ -50,7 +48,7 @@ CUSTOM_BENCHMARK_PRICE = None   # Example: 580.0 (SPY price before drop)
 # 
 # Example: Stock dropped to $380, want to know if that's 5th, 10th, or 25th percentile
 #
-TARGET_PRICE_TO_CHECK = None    # Example: 380.0
+TARGET_PRICE_TO_CHECK = 657.35     # Example: 380.0
 
 # ============================================================================
 # RUN THE ANALYSIS
@@ -61,7 +59,6 @@ print("MONTE CARLO RISK ANALYSIS ENGINE")
 print("="*80)
 print(f"\nConfiguration:")
 print(f"  Stock:              {STOCK_SYMBOL}")
-print(f"  Benchmark:          {BENCHMARK_SYMBOL}")
 print(f"  Starting Capital:   ${STARTING_CAPITAL:,.2f}")
 print(f"  Max Loss Tolerance: {MAX_TOLERABLE_LOSS_PCT}%")
 print(f"  Simulation Days:    {DAYS_TO_SIMULATE}")
@@ -69,8 +66,6 @@ print(f"  Monte Carlo Paths:  {NUM_SIMULATIONS:,}")
 
 if CUSTOM_STOCK_PRICE is not None:
     print(f"  Custom Stock Price: ${CUSTOM_STOCK_PRICE:.2f} (BACKTEST MODE)")
-if CUSTOM_BENCHMARK_PRICE is not None:
-    print(f"  Custom Bench Price: ${CUSTOM_BENCHMARK_PRICE:.2f} (BACKTEST MODE)")
 if TARGET_PRICE_TO_CHECK is not None:
     print(f"  Target Price Check: ${TARGET_PRICE_TO_CHECK:.2f}")
 
@@ -79,14 +74,12 @@ print("="*80)
 # Initialize the engine
 engine = MonteCarloRiskEngine(
     stock_symbol=STOCK_SYMBOL,
-    benchmark_symbol=BENCHMARK_SYMBOL,
     starting_capital=STARTING_CAPITAL,
     days_to_simulate=DAYS_TO_SIMULATE,
     num_simulations=NUM_SIMULATIONS,
     historical_window=HISTORICAL_WINDOW,
     max_tolerable_loss_pct=MAX_TOLERABLE_LOSS_PCT,
     custom_stock_price=CUSTOM_STOCK_PRICE,
-    custom_benchmark_price=CUSTOM_BENCHMARK_PRICE
 )
 
 # Run the full analysis
@@ -165,7 +158,6 @@ except Exception as e:
     print(f"{'='*80}")
     print(f"{str(e)}")
     print("\nPlease check:")
-    print("  - Stock/benchmark symbols are valid")
     print("  - You have internet connection for data download")
     print("  - yfinance can access the symbols")
     import traceback
