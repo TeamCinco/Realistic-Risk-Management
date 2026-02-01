@@ -84,7 +84,9 @@ engine = MonteCarloRiskEngine(
 
 # Run the full analysis
 try:
-    viz_path = engine.run_full_analysis()
+    viz_path = engine.run_full_analysis(
+    target_price_to_check=TARGET_PRICE_TO_CHECK
+)
     
     # TARGET PRICE ANALYSIS
     if TARGET_PRICE_TO_CHECK is not None:
