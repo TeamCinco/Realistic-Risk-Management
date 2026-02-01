@@ -1,103 +1,116 @@
 # Monte Carlo Risk Engine
 
-Quick Monte Carlo simulation for position sizing and risk analysis. Runs thousands of price paths based on historical volatility and correlation to benchmark.
+Monte Carlo simulation for single stock analysis. Built to identify statistical extremes in price movements.
+
+## What it does
+
+Runs 25,000 simulated price paths over 60 days to answer: "Is this price drop a 5th percentile event or normal variance?"
+
+Used for options entry timing on quality stocks during volatile bull markets.
 
 ## Structure
 
 ```
 /Tail End Risk/
-├── run_analysis.py              # Main script - configure and run here
+├── run_analysis.py
 └── /Mc Engine/
-    ├── monte_carlo_risk_engine.py   # Main orchestrator
-    ├── mc_data.py                   # Data download via yfinance
-    ├── mc_stats.py                  # Volatility, correlation, beta
-    ├── mc_simulation.py             # Monte Carlo simulation
-    ├── mc_percentiles.py            # Percentile calculations
-    └── mc_viz.py                    # Plotting functions
+    ├── monte_carlo_risk_engine.py
+    ├── mc_data.py          (35 lines)
+    ├── mc_stats.py         (21 lines)
+    ├── mc_simulation.py    (25 lines)
+    ├── mc_percentiles.py   (35 lines)
+    └── mc_viz.py           (144 lines)
 ```
+
+Total: 331 lines
 
 ## Usage
 
-Edit `run_analysis.py` parameters:
+Configure in `run_analysis.py`:
 
 ```python
 STOCK_SYMBOL = "CAT"
-BENCHMARK_SYMBOL = "SPY"
-STARTING_CAPITAL = 1000
-MAX_TOLERABLE_LOSS_PCT = 14
-DAYS_TO_SIMULATE = 30
+STARTING_CAPITAL = 1000 *ignore*
+DAYS_TO_SIMULATE = 60 
 NUM_SIMULATIONS = 25000
-HISTORICAL_WINDOW = 252*6
+HISTORICAL_WINDOW = 252*6 
 ```
 
 Run:
 ```bash
-cd "/path/to/Tail End Risk"
 python run_analysis.py
 ```
 
-## What it does
-
-1. Downloads historical data (yfinance)
-2. Calculates annualized volatility, correlation, beta
-3. Runs correlated Monte Carlo simulations (geometric Brownian motion)
-4. Calculates percentiles (1st, 5th, 10th, 25th, 50th, 75th, 90th, 95th, 99th) *as of 2/1/26 I added VAR and Cvar calculations in the output.*
-5. Recommends position size based on 5th percentile loss vs max tolerable loss
-6. Generates 9-panel visualization
-
 ## Output
 
-Saves to: `/Users/jazzhashzzz/Documents/Market_Analysis_files/output/monte_carlo_risk_engine/`
+4-panel visualization saved to `/output/monte_carlo_risk_engine/`:
+- Price path distribution
+- Return distribution histogram
+- Percentile table (1st through 99th)
+- Statistical summary with CVaR
 
-Contains:
-- Price path distributions (normalized)
-- Return distributions
-- Stock vs benchmark scatter (beta regression)
-- Rolling 30-day correlation
-- Percentile comparison table
-- Position sizing recommendation
-- Statistical summary
-
-## Backtest Mode
-
-Set custom starting prices to backtest from specific price levels:
-
-```python
-CUSTOM_STOCK_PRICE = 400.0      # Start from this price instead of current
-CUSTOM_BENCHMARK_PRICE = 580.0  # Optional benchmark price
+Terminal output:
+```
+Realized Vol: 32.53%
+VaR (95%):  -19.69%
+CVaR (95%): -25.72%
 ```
 
-Output filename will include "BACKTEST" tag.
+## Backtest mode
 
-## Target Price Analysis
-
-Check where a specific price falls in the distribution:
+Check where historical prices fell in distribution:
 
 ```python
-TARGET_PRICE_TO_CHECK = 380.0
+CUSTOM_STOCK_PRICE = 400.0      # Price before drop
+TARGET_PRICE_TO_CHECK = 380.0   # Price after drop
 ```
 
-Terminal output shows:
-- Percentile rank of target price
-- Distance from key percentiles (1st, 5th, 10th, 25th, 50th)
-- Mean reversion potential to median
-- Interpretation (extreme tail, oversold, etc.)
+Terminal shows percentile rank and interpretation.
 
-Use case: Stock drops from $400 to $380, run with `CUSTOM_STOCK_PRICE = 400.0` and `TARGET_PRICE_TO_CHECK = 380.0` to see if the drop was a 5th percentile event (potential entry) or 50th percentile (normal variance).
+## Workflow
 
-## Modifying Code
+1. Run analysis Sunday night on watchlist
+2. Note percentile prices from output
+3. Set price alerts at 10th percentile
+4. When alert triggers, run backtest with TARGET_PRICE_TO_CHECK
+5. Check if current price is 5th-15th percentile
+6. If yes, verify fundamentals and IV before trade
 
-**Add new statistic:**
-Edit `mc_stats.py`, add calculation, return in dict
+## What this tells you
 
-**Add new chart:**
-Edit `mc_viz.py`, add `_plot_your_chart()` function, call in `create_visualization()`
+- Where current price sits in 60-day distribution
+- Expected volatility over holding period
+- Tail risk metrics (CVaR)
+- Median outcome (50th percentile target)
 
-**Change simulation method:**
-Edit `mc_simulation.py`, modify `run_monte_carlo()` logic
+Does not predict direction or provide entry signals. Just statistical context.
 
-**Add new risk metric:**
-Edit `mc_percentiles.py`, add calculation function
+## Technical details
+
+- Geometric Brownian Motion simulation
+- Historical volatility from 6-year window
+- Random seed 42 for reproducibility
+- CVaR = average of all returns below VaR threshold
+- Assumes log-normal returns (understates tail risk)
+
+## Removed features
+
+Stripped out benchmark/correlation analysis from original version:
+- No SPY comparison
+- No beta calculation
+- No correlation metrics
+- No scatter plots
+- No position sizing recommendations
+
+Focus is purely on single stock percentile analysis.
+
+## Limitations
+
+- Only works in mean-reverting environments
+- Uses historical volatility (breaks in regime changes)
+- No earnings announcements modeled
+- Assumes continuous price movement (no gaps)
+- Single asset only
 
 ## Dependencies
 
@@ -108,33 +121,8 @@ pandas
 matplotlib
 ```
 
-## Notes
+## Use case
 
-- Random seed = 42 for reproducibility
-- 252 trading days = 1 year
-- Correlation uses Cholesky decomposition for correlated random variables
-- Position sizing: `recommended_position = min(max_loss_dollars / abs(5th_percentile_loss), starting_capital)`
-- Uses geometric Brownian motion: `S_t = S_0 * exp((μ - σ²/2)t + σW_t)`
+Built for low-frequency tactical options trading (3-5 trades/year) on blue chip stocks during volatile bull markets. Not for day trading, market timing, or portfolio optimization.
 
-## Limitations
-
-- Assumes log-normal returns (fat tails underestimated)
-- Uses historical volatility (may not reflect regime changes)
-- Correlation assumes stable relationship
-- No transaction costs, slippage, or liquidity constraints
-- Single-asset analysis (no portfolio effects)
-
-
-#How to use:
-You don't run the script every day. Run it once per week (Sunday night) for each stock on your watchlist. Note the percentile prices from the output image and set alerts at the 10th percentile level. Then go live your life.
-
-When an alert triggers (stock dropped 5-10% in a day), open run_analysis.py and set:
-pythonCUSTOM_STOCK_PRICE = 400.0       *Price before the drop*
-TARGET_PRICE_TO_CHECK = 380.0    *Current price after drop*
-
-Run it. Terminal shows the percentile rank. If it's 5th-15th percentile, continue. If >15th, ignore it - not extreme enough.
-Next, check fundamentals in 5 minutes: Why did it drop? Call an employee or check industry data. Business still strong?
-Then check IV: Pull current implied vol from your broker, compare to the realized vol number in your Monte Carlo output. IV lower than realized = options are cheap.
-
-If all three align (percentile extreme + fundamentals intact + IV cheap), buy one 90-120 day OTM call with $800-1000. Target exit at median recovery (50th percentile price from your table). Stop if fundamentals change or stock hits 1st percentile.
-That's it. 3-5 trades per year max.
+The Monte Carlo tells you where you are in the distribution. You still need to check fundamentals and IV before executing trades.
