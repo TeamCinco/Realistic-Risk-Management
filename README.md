@@ -1,14 +1,39 @@
 # Monte Carlo Risk Engine
 
-Monte Carlo simulation for single stock analysis. Built to identify statistical extremes in price movements.
+A Monte Carlo–based risk analysis tool for **single-asset price distributions**, built to identify **statistical extremes** in price movement and frame **forward downside risk** for options execution.
 
-## What it does
+This tool provides **context**, not predictions.
 
-Runs 25,000 simulated price paths over 60 days to answer: "Is this price drop a 5th percentile event or normal variance?"
+---
 
-Used for options entry timing on quality stocks during volatile bull markets.
+## What It Does
 
-## Structure
+Runs **25,000 Monte Carlo simulations** over a **60-day horizon** to answer:
+
+> *“Is this price move statistically extreme, or normal variance?”*
+
+Designed to support **options entry timing** (primarily credit structures) on **high-quality assets** during **volatile bull market regimes**.
+
+---
+
+## Core Concept
+
+The engine separates two questions:
+
+1. **Backward-looking:**
+   Where does a realized price move fall in the historical distribution?
+
+2. **Forward-looking:**
+   From *this price*, what does normal downside risk look like over the next 60 days?
+
+This distinction is critical:
+
+* **Backward percentiles** = signal (oversold / stretched)
+* **Forward percentiles** = strike placement & risk definition
+
+---
+
+## Project Structure
 
 ```
 /Tail End Risk/
@@ -22,121 +47,188 @@ Used for options entry timing on quality stocks during volatile bull markets.
     └── mc_viz.py           (144 lines)
 ```
 
-Total: 331 lines
+**Total:** ~331 lines
+
+---
 
 ## Usage
 
-Configure in `run_analysis.py`:
+Configure parameters in `run_analysis.py`:
 
 ```python
 STOCK_SYMBOL = "CAT"
-STARTING_CAPITAL = 1000 *ignore*
-DAYS_TO_SIMULATE = 60 
+STARTING_CAPITAL = 1000  # ignored, legacy
+DAYS_TO_SIMULATE = 60
 NUM_SIMULATIONS = 25000
-HISTORICAL_WINDOW = 252*6 
+HISTORICAL_WINDOW = 252 * 6
 ```
 
 Run:
+
 ```bash
 python run_analysis.py
 ```
 
+---
+
 ## Output
 
-4-panel visualization saved to `/output/monte_carlo_risk_engine/`:
-- Price path distribution
-- Return distribution histogram
-- Percentile table (1st through 99th)
-- Statistical summary with CVaR
+### Saved Visualization (`/output/monte_carlo_risk_engine/`)
 
-Terminal output:
+A 4-panel chart including:
+
+* Simulated price path fan
+* Return distribution histogram
+* Percentile table (1st–99th)
+* Risk summary (VaR & CVaR)
+
+### Terminal Summary
+
 ```
 Realized Vol: 32.53%
 VaR (95%):  -19.69%
 CVaR (95%): -25.72%
 ```
 
-## Backtest mode
+---
 
-Check where historical prices fell in distribution:
+## Backtest Mode (Realized Move Analysis)
+
+Used to determine **where an actual price move falls** in the distribution.
 
 ```python
-CUSTOM_STOCK_PRICE = 400.0      # Price before drop
-TARGET_PRICE_TO_CHECK = 380.0   # Price after drop
+CUSTOM_STOCK_PRICE = 400.0      # price before move
+TARGET_PRICE_TO_CHECK = 380.0  # price after move
 ```
 
-Terminal shows percentile rank and interpretation.
+Outputs:
 
-## Workflow
+* Percentile rank of the move
+* Interpretation (normal, rare, extreme)
 
-1. Run analysis Sunday night on watchlist
-2. Note percentile prices from output
-3. Set price alerts at 10th percentile
-4. When alert triggers, run backtest with TARGET_PRICE_TO_CHECK
-5. Check if current price is 5th-15th percentile
-6. If yes, verify fundamentals and IV before trade
+This answers:
+**“How unusual was the drop that already happened?”**
 
-## What this tells you
+---
 
-- Where current price sits in 60-day distribution
-- Expected volatility over holding period
-- Tail risk metrics (CVaR)
-- Median outcome (50th percentile target)
+## Standard Workflow
 
-Does not predict direction or provide entry signals. Just statistical context.
+1. Run MC analysis on watchlist (weekly)
+2. Record percentile price levels (p5, p10, p50, etc.)
+3. Set alerts near **10th percentile**
+4. When triggered:
 
-## Technical details
+   * Run backtest with actual price
+   * Confirm price sits in **5th–15th percentile**
+5. Remove backtest inputs
+6. Use forward percentiles to convert returns → strike prices
+7. Verify **fundamentals + volatility regime + IV**
+8. Execute options structure if conditions pass
 
-- Geometric Brownian Motion simulation
-- Historical volatility from 6-year window
-- Random seed 42 for reproducibility
-- CVaR = average of all returns below VaR threshold
-- Assumes log-normal returns (understates tail risk)
+---
 
-## Removed features
+## What This Tool Tells You
 
-Stripped out benchmark/correlation analysis from original version:
-- No SPY comparison
-- No beta calculation
-- No correlation metrics
-- No scatter plots
-- No position sizing recommendations
+* Where price sits in a **60-day return distribution**
+* Expected volatility over holding period
+* Tail risk severity (CVaR)
+* Median outcome (mean-reversion reference)
 
-Focus is purely on single stock percentile analysis.
+### What It Does *Not* Do
+
+* Predict direction
+* Generate buy/sell signals
+* Replace fundamentals or macro analysis
+
+It provides **statistical context only**.
+
+---
+
+## Notes: How to Use This for Options
+
+Typical use case:
+
+1. A stock experiences a sharp drop
+2. Backtest shows price at **low percentile (e.g. 5–10%)**
+3. Forward MC shows **contained downside tails**
+4. Convert forward percentiles to price levels:
+
+   ```
+   strike = current_price × (1 + percentile_return)
+   ```
+5. Sell credit put spreads **below p10**, protected near p5
+6. Rely on:
+
+   * Mean reversion
+   * Time decay
+   * Elevated IV
+
+This structure benefits from **fear already priced in**, not from further downside.
+
+---
+
+## Missing Piece: IV vs Realized Volatility
+
+The Monte Carlo engine uses **realized volatility**.
+Execution requires comparing that to **implied volatility**.
+
+### IV vs Realized Vol Framework
+
+| Realized Vol | Current IV | Interpretation | Action             |
+| ------------ | ---------- | -------------- | ------------------ |
+| 17.1%        | 14%        | IV cheap       | Don’t sell premium |
+| 17.1%        | 18%        | Fair           | Marginal           |
+| 17.1%        | 25%+       | IV expensive   | **Sell puts ✓**    |
+
+This comparison determines **whether the statistical edge is tradable**.
+
+---
+
+## Technical Details
+
+* Geometric Brownian Motion
+* Log-normal return assumption
+* Historical volatility from 6-year window
+* Random seed = 42 (reproducibility)
+* CVaR = mean of worst tail outcomes
+* Understates extreme tail risk (known limitation)
+
+---
+
+## Removed Features
+
+Intentionally stripped to maintain focus:
+
+* No SPY benchmark
+* No beta or correlation
+* No market regime detection
+* No position sizing logic
+* No portfolio context
+
+Single asset. Single distribution. Clean signal.
+
+---
 
 ## Limitations
 
-- Only works in mean-reverting environments
-- Uses historical volatility (breaks in regime changes)
-- No earnings announcements modeled
-- Assumes continuous price movement (no gaps)
-- Single asset only
+* Assumes mean-reverting behavior
+* Breaks during regime shifts
+* No earnings or macro events modeled
+* No overnight gap modeling
+* Single asset only
 
-## Dependencies
+---
 
-```
-yfinance
-numpy
-pandas
-matplotlib
-```
+## Intended Use Case
 
-## Use case
+Low-frequency **tactical options trading**
+(~3–5 trades per year) on liquid, high-quality assets during **volatile but non-crisis bull markets**.
 
-Built for low-frequency tactical options trading (3-5 trades/year) on blue chip stocks during volatile bull markets. Not for day trading, market timing, or portfolio optimization.
+The Monte Carlo tells you **where you are in the distribution**.
+You still must:
 
-The Monte Carlo tells you where you are in the distribution. You still need to check fundamentals and IV before executing trades.
+* Validate regime
+* Check fundamentals
+* Confirm IV edge
+* Define failure conditions
 
-# Example:
-You see a stocks recent movements place it at a low percentile (5-1 percentile). 
-
-Then you remove the custom and target price and see the foward look to determine where to place your strikes for the credit put spread.
-
-# What I am missing:
-1. info about the IV vs Realized IV vs Realized IV... that will help our decision making
-
-Example: 
-Realized Vol  | Current IV | IV vs Realized | Action
-17.11%       | 14%        | Cheap          | Don't sell, buy calls instead
-17.11%       | 18%        | Fair           | Marginal
-17.11%       | 25%+       | Expensive      | SELL PUTS ✓
