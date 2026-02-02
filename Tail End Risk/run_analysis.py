@@ -16,7 +16,7 @@ from monte_carlo_risk_engine import MonteCarloRiskEngine
 # ============================================================================
 
 # Stock
-STOCK_SYMBOL = "PLTR"           # Change to any stock (e.g., "AAPL", "NVDA", "MSFT")
+STOCK_SYMBOL = "AAPL"           # Change to any stock (e.g., "AAPL", "NVDA", "MSFT")
 
 # Capital and Risk Parameters
 STARTING_CAPITAL = 1000         # Your starting capital in dollars
@@ -38,7 +38,7 @@ HISTORICAL_WINDOW = 252*6       # Days to look back for volatility calculation
 #     Set CUSTOM_STOCK_PRICE = 400.0, then check output
 #   - Want to test "what if" scenarios from different price levels
 #
-CUSTOM_STOCK_PRICE = 193.38       # Example: 400.0 (CAT price before drop)
+CUSTOM_STOCK_PRICE = 286.19       # Example: 400.0 (CAT price before drop)
 
 # ============================================================================
 # TARGET PRICE ANALYSIS (OPTIONAL)
@@ -48,7 +48,7 @@ CUSTOM_STOCK_PRICE = 193.38       # Example: 400.0 (CAT price before drop)
 # 
 # Example: Stock dropped to $380, want to know if that's 5th, 10th, or 25th percentile
 #
-TARGET_PRICE_TO_CHECK = 146.59       # Example: 380.0
+TARGET_PRICE_TO_CHECK = 259.48       # Example: 380.0
 
 # ============================================================================
 # RUN THE ANALYSIS

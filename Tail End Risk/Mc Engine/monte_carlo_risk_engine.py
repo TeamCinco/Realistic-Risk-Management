@@ -16,6 +16,7 @@ class MonteCarloRiskEngine:
         self.num_simulations = num_simulations
         self.historical_window = historical_window
         self.max_tolerable_loss_pct = max_tolerable_loss_pct
+        self.custom_stock_price = custom_stock_price  # Store for visualization
         
         # Download data
         self.stock_data = download_data(stock_symbol, historical_window)
@@ -64,7 +65,7 @@ class MonteCarloRiskEngine:
             "stock_expected_return": self.stock_expected_return,
             "starting_capital": self.starting_capital,
             "max_tolerable_loss_pct": self.max_tolerable_loss_pct,
-            "custom_stock_price": getattr(self, 'custom_stock_price', None),
+            "custom_stock_price": self.custom_stock_price,
             "stock_cvar": self.stock_cvar,
             "target_price_to_check": target_price_to_check
         }
